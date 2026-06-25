@@ -81,10 +81,7 @@ export default function OffresEmploi() {
             borderRadius: 8, padding: 16, marginBottom: 16, color: '#ff8080',
           }}>
             <div style={{ fontWeight: 700, marginBottom: 4 }}>⚠️ Connexion impossible</div>
-            <div style={{ fontSize: '0.8rem' }}>{error}</div>
-            <div style={{ fontSize: '0.75rem', marginTop: 8, color: 'var(--sm-text-dim)' }}>
-              Vérifiez que FRANCE_TRAVAIL_CLIENT_ID et FRANCE_TRAVAIL_CLIENT_SECRET sont configurés dans Netlify.
-            </div>
+            <div style={{ fontSize: '0.8rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>{error}</div>
           </div>
         )}
 

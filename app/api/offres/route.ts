@@ -19,8 +19,8 @@ async function getToken(): Promise<string> {
     }),
   });
 
-  if (!res.ok) throw new Error(`Auth France Travail: ${res.status}`);
   const data = await res.json();
+  if (!res.ok) throw new Error(`Auth France Travail ${res.status}: ${data.error} — ${data.error_description}`);
   tokenCache = { token: data.access_token, expires: Date.now() + (data.expires_in - 60) * 1000 };
   return tokenCache.token;
 }
