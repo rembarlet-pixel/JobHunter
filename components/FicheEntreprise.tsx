@@ -3,15 +3,16 @@
 import { useState, useEffect } from 'react';
 import type { Entreprise, StatutCandidature } from '@/lib/types';
 import { STATUTS } from '@/lib/types';
-import { getStatuts, setStatut, getNotes, setNote } from '@/lib/storage';
+import { getStatuts, setStatut, getNotes, setNote, masquerEntreprise } from '@/lib/storage';
 
 interface Props {
   entreprise: Entreprise;
   onClose: () => void;
   onStatutChange: () => void;
+  onMasquer: (id: string) => void;
 }
 
-export default function FicheEntreprise({ entreprise, onClose, onStatutChange }: Props) {
+export default function FicheEntreprise({ entreprise, onClose, onStatutChange, onMasquer }: Props) {
   const [statut, setStatutLocal] = useState<StatutCandidature>('prospect');
   const [note, setNoteLocal] = useState('');
   const [rappel, setRappelLocal] = useState('');
@@ -45,7 +46,7 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange }:
   };
 
   const searchSocieteCom = () => {
-    window.open(`https://www.societe.com/societe/${entreprise.siren}.html`, '_blank');
+    window.open(`https://annuaire-entreprises.data.gouv.fr/entreprise/${entreprise.siren}`, '_blank');
   };
 
   const searchGoogle = () => {
@@ -189,6 +190,22 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange }:
           }}
         >
           {saved ? '✅ Sauvegardé' : '💾 Sauvegarder les notes'}
+        </button>
+
+        {/* Bouton masquer */}
+        <button
+          onClick={() => {
+            masquerEntreprise(entreprise.id);
+            onMasquer(entreprise.id);
+            onClose();
+          }}
+          style={{
+            background: 'transparent', color: 'var(--sm-text-dim)',
+            border: '1px solid var(--sm-border)', borderRadius: 8,
+            padding: '8px', cursor: 'pointer', fontSize: '0.82rem',
+          }}
+        >
+          🚫 Pas intéressant — masquer ce point
         </button>
 
         {entreprise.manuelle && (

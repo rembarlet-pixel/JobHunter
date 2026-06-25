@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import type { Entreprise, StatutCandidature } from '@/lib/types';
 import companiesData from '@/data/companies-cache.json';
-import { getEntreprisesManuelles } from '@/lib/storage';
+import { getEntreprisesManuelles, getMasquees } from '@/lib/storage';
 
 const CarteEntreprises = dynamic(() => import('@/components/CarteEntreprises'), { ssr: false });
 const FicheEntreprise = dynamic(() => import('@/components/FicheEntreprise'), { ssr: false });
@@ -13,8 +13,15 @@ const OffresEmploi = dynamic(() => import('@/components/OffresEmploi'), { ssr: f
 
 type Vue = 'carte' | 'offres';
 
+// Départements Est : AURA (sans Auvergne Ouest) + Grand Est
+const DEPTS_EST = new Set([
+  '01','07','26','38','42','69','73','74', // AURA Est
+  '08','10','51','52','54','55','57','67','68','88', // Grand Est
+]);
+
 export default function Home() {
   const [entreprises, setEntreprises] = useState<Entreprise[]>([]);
+  const [masquees, setMasquees] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Entreprise | null>(null);
   const [filtreStatut, setFiltreStatut] = useState<StatutCandidature | 'tous'>('tous');
   const [filtreTexte, setFiltreTexte] = useState('');
@@ -24,9 +31,15 @@ export default function Home() {
 
   useEffect(() => {
     const manuelles = getEntreprisesManuelles();
-    const all = [...(companiesData as Entreprise[]), ...manuelles];
+    const all = [
+      ...(companiesData as Entreprise[]).filter(e => DEPTS_EST.has(e.departement)),
+      ...manuelles,
+    ];
     setEntreprises(all);
+    setMasquees(getMasquees());
   }, []);
+
+  const entreprisesVisibles = entreprises.filter(e => !masquees.has(e.id));
 
   const handleSelect = useCallback((e: Entreprise) => {
     setSelected(e);
@@ -37,10 +50,15 @@ export default function Home() {
     setRefreshKey(k => k + 1);
   }, []);
 
+  const handleMasquer = useCallback((id: string) => {
+    setMasquees(prev => new Set([...prev, id]));
+    setRefreshKey(k => k + 1);
+  }, []);
+
   return (
     <div style={{ height: '100dvh', width: '100dvw', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
 
-      {/* Barre de navigation top */}
+      {/* Navbar */}
       <div style={{
         display: 'flex', alignItems: 'center',
         background: 'var(--sm-panel)',
@@ -49,14 +67,8 @@ export default function Home() {
       }}>
         <button
           onClick={() => setPanelOuvert(v => !v)}
-          style={{
-            background: 'none', border: 'none', color: 'var(--sm-gold)',
-            fontSize: '1.2rem', cursor: 'pointer', padding: '0 8px 0 0', lineHeight: 1,
-          }}
-          title="Liste des entreprises"
-        >
-          ☰
-        </button>
+          style={{ background: 'none', border: 'none', color: 'var(--sm-gold)', fontSize: '1.2rem', cursor: 'pointer', padding: '0 8px 0 0', lineHeight: 1 }}
+        >☰</button>
 
         <SupermanS size={26} />
         <div style={{ marginLeft: 8, fontWeight: 900, color: 'var(--sm-gold)', fontSize: '0.9rem', letterSpacing: 1 }}>
@@ -69,31 +81,28 @@ export default function Home() {
         <OngletBtn actif={vue === 'offres'} onClick={() => setVue('offres')} label="📋 Offres" />
       </div>
 
-      {/* Contenu principal */}
+      {/* Contenu — position relative pour que OffresEmploi soit contenu dedans */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        {vue === 'carte' && (
-          <div style={{ height: '100%', display: 'flex' }}>
-            <CarteEntreprises
-              entreprises={entreprises}
-              filtreStatut={filtreStatut}
-              filtreTexte={filtreTexte}
-              onSelect={handleSelect}
-              selected={selected}
-            />
-          </div>
-        )}
+        {/* Carte toujours montée, cachée quand onglet Offres */}
+        <div style={{ height: '100%', display: vue === 'carte' ? 'flex' : 'none' }}>
+          <CarteEntreprises
+            entreprises={entreprisesVisibles}
+            filtreStatut={filtreStatut}
+            filtreTexte={filtreTexte}
+            onSelect={handleSelect}
+            selected={selected}
+          />
+        </div>
+
         {vue === 'offres' && <OffresEmploi />}
       </div>
 
       {/* Panel liste */}
       {panelOuvert && (
         <>
-          <div
-            onClick={() => setPanelOuvert(false)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1400 }}
-          />
+          <div onClick={() => setPanelOuvert(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1400 }} />
           <PanelListe
-            entreprises={entreprises}
+            entreprises={entreprisesVisibles}
             filtreStatut={filtreStatut}
             setFiltreStatut={setFiltreStatut}
             filtreTexte={filtreTexte}
@@ -109,19 +118,17 @@ export default function Home() {
       {/* Fiche entreprise */}
       {selected && (
         <>
-          <div
-            onClick={() => setSelected(null)}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1900 }}
-          />
+          <div onClick={() => setSelected(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1900 }} />
           <FicheEntreprise
             entreprise={selected}
             onClose={() => setSelected(null)}
             onStatutChange={handleStatutChange}
+            onMasquer={handleMasquer}
           />
         </>
       )}
 
-      {/* FAB ajout manuel */}
+      {/* FAB */}
       {vue === 'carte' && !selected && !panelOuvert && (
         <button
           onClick={() => alert('Ajout manuel — bientôt disponible')}
@@ -133,10 +140,7 @@ export default function Home() {
             cursor: 'pointer', fontWeight: 900, lineHeight: 1,
             boxShadow: '0 0 16px rgba(204,0,0,0.5)',
           }}
-          title="Ajouter une entreprise (Suisse, etc.)"
-        >
-          +
-        </button>
+        >+</button>
       )}
     </div>
   );
@@ -144,18 +148,13 @@ export default function Home() {
 
 function OngletBtn({ actif, onClick, label }: { actif: boolean; onClick: () => void; label: string }) {
   return (
-    <button
-      onClick={onClick}
-      style={{
-        background: actif ? 'rgba(255,215,0,0.12)' : 'none',
-        border: actif ? '1px solid var(--sm-gold)' : '1px solid transparent',
-        color: actif ? 'var(--sm-gold)' : 'var(--sm-text-dim)',
-        borderRadius: 6, padding: '4px 12px', cursor: 'pointer',
-        fontSize: '0.8rem', fontWeight: actif ? 700 : 400, marginLeft: 6,
-      }}
-    >
-      {label}
-    </button>
+    <button onClick={onClick} style={{
+      background: actif ? 'rgba(255,215,0,0.12)' : 'none',
+      border: actif ? '1px solid var(--sm-gold)' : '1px solid transparent',
+      color: actif ? 'var(--sm-gold)' : 'var(--sm-text-dim)',
+      borderRadius: 6, padding: '4px 12px', cursor: 'pointer',
+      fontSize: '0.8rem', fontWeight: actif ? 700 : 400, marginLeft: 6,
+    }}>{label}</button>
   );
 }
 

@@ -25,8 +25,8 @@ export default function OffresEmploi() {
     setError(null);
     try {
       const res = await fetch('/api/offres');
-      if (!res.ok) throw new Error(`Erreur ${res.status}`);
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
       setOffres(data.resultats || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
@@ -41,9 +41,8 @@ export default function OffresEmploi() {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0,
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
       background: 'var(--sm-bg)',
-      zIndex: 3000, display: 'flex', flexDirection: 'column',
       overflowY: 'auto',
     }}>
       {/* Header */}
@@ -70,7 +69,7 @@ export default function OffresEmploi() {
             opacity: loading ? 0.6 : 1,
           }}
         >
-          {loading ? '⏳ Chargement…' : '🔄 Actualiser'}
+          {loading ? '⏳' : '🔄 Actualiser'}
         </button>
       </div>
 
@@ -80,8 +79,8 @@ export default function OffresEmploi() {
             background: '#2a0a0a', border: '1px solid var(--sm-red)',
             borderRadius: 8, padding: 16, marginBottom: 16, color: '#ff8080',
           }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>⚠️ Connexion impossible</div>
-            <div style={{ fontSize: '0.8rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>{error}</div>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>⚠️ Connexion impossible</div>
+            <div style={{ fontSize: '0.82rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>{error}</div>
           </div>
         )}
 
@@ -94,65 +93,33 @@ export default function OffresEmploi() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {offres.map(offre => (
-            <div
-              key={offre.id}
-              style={{
-                background: 'var(--sm-panel)',
-                border: '1px solid var(--sm-border)',
-                borderRadius: 8, overflow: 'hidden',
-              }}
-            >
-              <div
-                onClick={() => setExpanded(expanded === offre.id ? null : offre.id)}
-                style={{ padding: '12px 16px', cursor: 'pointer' }}
-              >
+            <div key={offre.id} style={{ background: 'var(--sm-panel)', border: '1px solid var(--sm-border)', borderRadius: 8, overflow: 'hidden' }}>
+              <div onClick={() => setExpanded(expanded === offre.id ? null : offre.id)} style={{ padding: '12px 16px', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--sm-text)', fontSize: '0.9rem', flex: 1 }}>
-                    {offre.intitule}
-                  </div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--sm-blue-light)', flexShrink: 0 }}>
-                    {offre.typeContrat || 'CDI'}
-                  </div>
+                  <div style={{ fontWeight: 700, color: 'var(--sm-text)', fontSize: '0.9rem', flex: 1 }}>{offre.intitule}</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--sm-blue-light)', flexShrink: 0 }}>{offre.typeContrat || 'CDI'}</div>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--sm-text-dim)', marginTop: 4, display: 'flex', gap: 12 }}>
-                  <span>🏢 {offre.entreprise?.nom || 'Entreprise confidentielle'}</span>
+                <div style={{ fontSize: '0.8rem', color: 'var(--sm-text-dim)', marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <span>🏢 {offre.entreprise?.nom || 'Confidentiel'}</span>
                   <span>📍 {offre.lieuTravail?.libelle || '—'}</span>
                 </div>
                 {offre.salaire?.libelle && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--sm-gold)', marginTop: 2 }}>
-                    💰 {offre.salaire.libelle}
-                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--sm-gold)', marginTop: 2 }}>💰 {offre.salaire.libelle}</div>
                 )}
                 <div style={{ fontSize: '0.68rem', color: 'var(--sm-text-dim)', marginTop: 4 }}>
-                  Publiée le {offre.dateCreation ? new Date(offre.dateCreation).toLocaleDateString('fr-FR') : '—'}
-                  {' · '}
-                  <span style={{ color: 'var(--sm-text)' }}>{expanded === offre.id ? '▲ Réduire' : '▼ Voir plus'}</span>
+                  {offre.dateCreation ? new Date(offre.dateCreation).toLocaleDateString('fr-FR') : '—'} · {expanded === offre.id ? '▲ Réduire' : '▼ Voir plus'}
                 </div>
               </div>
 
               {expanded === offre.id && (
                 <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--sm-border)' }}>
                   {offre.description && (
-                    <div style={{
-                      fontSize: '0.8rem', color: 'var(--sm-text-dim)', marginTop: 12,
-                      whiteSpace: 'pre-wrap', maxHeight: 200, overflowY: 'auto',
-                      lineHeight: 1.5,
-                    }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--sm-text-dim)', marginTop: 12, whiteSpace: 'pre-wrap', maxHeight: 200, overflowY: 'auto', lineHeight: 1.5 }}>
                       {offre.description.slice(0, 600)}{offre.description.length > 600 ? '…' : ''}
                     </div>
                   )}
                   {offre.origineOffre?.urlOrigine && (
-                    <a
-                      href={offre.origineOffre.urlOrigine}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'inline-block', marginTop: 12,
-                        background: 'var(--sm-red)', color: '#fff',
-                        padding: '6px 14px', borderRadius: 6,
-                        fontSize: '0.8rem', textDecoration: 'none', fontWeight: 700,
-                      }}
-                    >
+                    <a href={offre.origineOffre.urlOrigine} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 12, background: 'var(--sm-red)', color: '#fff', padding: '6px 14px', borderRadius: 6, fontSize: '0.8rem', textDecoration: 'none', fontWeight: 700 }}>
                       Voir l'offre ↗
                     </a>
                   )}

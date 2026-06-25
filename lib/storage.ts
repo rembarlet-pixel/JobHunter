@@ -4,6 +4,7 @@ const KEYS = {
   statuts: 'jh-statuts',
   notes: 'jh-notes',
   manuelles: 'jh-manuelles',
+  masquees: 'jh-masquees',
 } as const;
 
 function load<T>(key: string, fallback: T): T {
@@ -57,4 +58,21 @@ export function addEntrepriseManuelle(e: EntrepriseManuelle) {
 export function removeEntrepriseManuelle(id: string) {
   const list = getEntreprisesManuelles().filter(e => e.id !== id);
   save(KEYS.manuelles, list);
+}
+
+// Entreprises masquées (pas intéressantes)
+export function getMasquees(): Set<string> {
+  return new Set(load<string[]>(KEYS.masquees, []));
+}
+
+export function masquerEntreprise(id: string) {
+  const set = getMasquees();
+  set.add(id);
+  save(KEYS.masquees, [...set]);
+}
+
+export function demasquerEntreprise(id: string) {
+  const set = getMasquees();
+  set.delete(id);
+  save(KEYS.masquees, [...set]);
 }
