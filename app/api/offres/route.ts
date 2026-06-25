@@ -8,15 +8,18 @@ let tokenCache: { token: string; expires: number } | null = null;
 async function getToken(): Promise<string> {
   if (tokenCache && Date.now() < tokenCache.expires) return tokenCache.token;
 
+  // France Travail exige %20 pour les espaces dans le scope (pas +)
+  const body = [
+    'grant_type=client_credentials',
+    `client_id=${encodeURIComponent(CLIENT_ID!)}`,
+    `client_secret=${encodeURIComponent(CLIENT_SECRET!)}`,
+    `scope=${encodeURIComponent('api_offresdemploiv2 o2dsoffre')}`,
+  ].join('&');
+
   const res = await fetch('https://entreprise.francetravail.fr/connexion/oauth2/access_token?realm=%2Fpartenaire', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: CLIENT_ID!,
-      client_secret: CLIENT_SECRET!,
-      scope: 'api_offresdemploiv2 o2dsoffre',
-    }),
+    body,
   });
 
   const data = await res.json();
