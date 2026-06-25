@@ -33,7 +33,7 @@ export default function PanelListe({
 
   const visibles = entreprises.filter(e => {
     if (filtreStatut !== 'tous') {
-      const s = statuts[e.id]?.statut || 'prospect';
+      const s = statuts[e.id]?.statut || 'regarder';
       if (s !== filtreStatut) return false;
     }
     if (filtreTexte) {
@@ -44,7 +44,7 @@ export default function PanelListe({
   });
 
   // Tri : rappels en premier, puis par statut
-  const ORDRE_STATUTS: StatutCandidature[] = ['entretien', 'relance', 'envoye', 'prospect', 'offre', 'refus'];
+  const ORDRE_STATUTS: StatutCandidature[] = ['contacte', 'interessant', 'regarder'];
   const sorted = [...visibles].sort((a, b) => {
     const ra = notes[a.id]?.rappel;
     const rb = notes[b.id]?.rappel;
@@ -52,17 +52,15 @@ export default function PanelListe({
     const bRappel = rb && rb <= today;
     if (aRappel && !bRappel) return -1;
     if (!aRappel && bRappel) return 1;
-    const sa = statuts[a.id]?.statut || 'prospect';
-    const sb = statuts[b.id]?.statut || 'prospect';
+    const sa = statuts[a.id]?.statut || 'regarder';
+    const sb = statuts[b.id]?.statut || 'regarder';
     return ORDRE_STATUTS.indexOf(sa) - ORDRE_STATUTS.indexOf(sb);
   });
 
   // Compteurs par statut
-  const counts = Object.fromEntries(
-    Object.keys(STATUTS).map(k => [k, 0])
-  ) as Record<StatutCandidature, number>;
+  const counts = { regarder: 0, interessant: 0, contacte: 0 } as Record<StatutCandidature, number>;
   entreprises.forEach(e => {
-    const s = statuts[e.id]?.statut || 'prospect';
+    const s = statuts[e.id]?.statut || 'regarder';
     counts[s] = (counts[s] || 0) + 1;
   });
 
@@ -85,7 +83,7 @@ export default function PanelListe({
             <SupermanLogo size={28} />
             <div>
               <div style={{ fontWeight: 700, color: 'var(--sm-gold)', fontSize: '0.95rem' }}>JOB HUNTER</div>
-              <div style={{ fontSize: '0.65rem', color: 'var(--sm-text-dim)' }}>{entreprises.length} entreprises · {Object.values(counts).reduce((a,b)=>a+b,0) - (counts.prospect || 0)} contactées</div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--sm-text-dim)' }}>{entreprises.length} entreprises · {(counts.interessant || 0) + (counts.contacte || 0)} qualifiées</div>
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--sm-text-dim)', cursor: 'pointer', fontSize: '1.2rem' }}>☰</button>
@@ -134,7 +132,7 @@ export default function PanelListe({
           </div>
         )}
         {sorted.map(e => {
-          const s = statuts[e.id]?.statut || 'prospect';
+          const s = statuts[e.id]?.statut || 'regarder';
           const couleur = STATUTS[s].couleur;
           const rappelDate = notes[e.id]?.rappel;
           const hasRappel = rappelDate && rappelDate <= today;

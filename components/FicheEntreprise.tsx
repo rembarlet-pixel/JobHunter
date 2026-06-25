@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default function FicheEntreprise({ entreprise, onClose, onStatutChange, onMasquer }: Props) {
-  const [statut, setStatutLocal] = useState<StatutCandidature>('prospect');
+  const [statut, setStatutLocal] = useState<StatutCandidature>('regarder');
   const [note, setNoteLocal] = useState('');
   const [rappel, setRappelLocal] = useState('');
   const [saved, setSaved] = useState(false);
@@ -21,7 +21,7 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
   useEffect(() => {
     const statuts = getStatuts();
     const notes = getNotes();
-    setStatutLocal(statuts[entreprise.id]?.statut || 'prospect');
+    setStatutLocal(statuts[entreprise.id]?.statut || 'regarder');
     setNoteLocal(notes[entreprise.id]?.texte || '');
     setRappelLocal(notes[entreprise.id]?.rappel || '');
     setSaved(false);
@@ -39,7 +39,13 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
     setTimeout(() => setSaved(false), 1500);
   }
 
-  const couleurStatut = STATUTS[statut].couleur;
+  function handleSupprimer() {
+    masquerEntreprise(entreprise.id);
+    onMasquer(entreprise.id);
+    onClose();
+  }
+
+  const couleurStatut = STATUTS[statut]?.couleur ?? '#1565C0';
 
   const urlLinkedIn = `https://www.google.com/search?q=site:linkedin.com/company+${encodeURIComponent(entreprise.nom)}`;
   const urlAnnuaire = `https://annuaire-entreprises.data.gouv.fr/entreprise/${entreprise.siren}`;
@@ -67,25 +73,19 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
               {entreprise.nom}
             </div>
             <div style={{ fontSize: '0.8rem', color: 'var(--sm-text-dim)', marginTop: 2 }}>
-              {entreprise.ville} ({entreprise.departement}) · {entreprise.libelleApe}
+              {entreprise.ville} ({entreprise.departement})
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none', border: '1px solid var(--sm-border)',
-              color: 'var(--sm-text-dim)', borderRadius: 4,
-              padding: '4px 10px', cursor: 'pointer', fontSize: '1rem', flexShrink: 0,
-            }}
-          >✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: '1px solid var(--sm-border)', color: 'var(--sm-text-dim)', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: '1rem', flexShrink: 0 }}>✕</button>
         </div>
       </div>
 
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Statut */}
+
+        {/* Statuts + Supprimer */}
         <div>
           <div style={{ fontSize: '0.7rem', color: 'var(--sm-text-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
-            Statut candidature
+            Statut
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {(Object.entries(STATUTS) as [StatutCandidature, typeof STATUTS[StatutCandidature]][]).map(([key, s]) => (
@@ -93,7 +93,7 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
                 key={key}
                 onClick={() => handleStatut(key)}
                 style={{
-                  padding: '5px 10px', borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer',
+                  padding: '6px 12px', borderRadius: 6, fontSize: '0.78rem', cursor: 'pointer',
                   border: statut === key ? `2px solid ${s.couleur}` : '1px solid var(--sm-border)',
                   background: statut === key ? s.couleur + '22' : 'transparent',
                   color: statut === key ? s.couleur : 'var(--sm-text-dim)',
@@ -103,17 +103,26 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
                 {s.emoji} {s.label}
               </button>
             ))}
+            <button
+              onClick={handleSupprimer}
+              style={{
+                padding: '6px 12px', borderRadius: 6, fontSize: '0.78rem', cursor: 'pointer',
+                border: '1px solid #424242', background: 'transparent',
+                color: '#888',
+              }}
+            >
+              🗑 Supprimer
+            </button>
           </div>
         </div>
 
         {/* Infos entreprise */}
         <div style={{ background: 'var(--sm-bg)', borderRadius: 8, padding: 12, fontSize: '0.8rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
-            <InfoLine label="SIRET" value={entreprise.siret} />
+            <InfoLine label="Activité" value={entreprise.libelleApe} />
             <InfoLine label="Code APE" value={entreprise.codeApe} />
             <InfoLine label="Adresse" value={entreprise.adresse} />
-            <InfoLine label="Code postal" value={entreprise.codePostal} />
-            <InfoLine label="Ville" value={entreprise.ville} />
+            <InfoLine label="Ville" value={`${entreprise.codePostal} ${entreprise.ville}`} />
             {entreprise.trancheEffectifs && (
               <InfoLine label="Effectifs" value={trancheLabel(entreprise.trancheEffectifs)} />
             )}
@@ -144,13 +153,8 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
             value={note}
             onChange={e => setNoteLocal(e.target.value)}
             placeholder="Contact, impressions, infos clés…"
-            rows={5}
-            style={{
-              width: '100%', background: 'var(--sm-bg)',
-              border: '1px solid var(--sm-border)', borderRadius: 6,
-              color: 'var(--sm-text)', padding: '8px 10px',
-              fontSize: '0.85rem', resize: 'vertical', outline: 'none',
-            }}
+            rows={4}
+            style={{ width: '100%', background: 'var(--sm-bg)', border: '1px solid var(--sm-border)', borderRadius: 6, color: 'var(--sm-text)', padding: '8px 10px', fontSize: '0.85rem', resize: 'vertical', outline: 'none' }}
           />
         </div>
 
@@ -163,41 +167,20 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
             type="date"
             value={rappel}
             onChange={e => setRappelLocal(e.target.value)}
-            style={{
-              background: 'var(--sm-bg)', border: '1px solid var(--sm-border)',
-              borderRadius: 6, color: 'var(--sm-text)', padding: '6px 10px',
-              fontSize: '0.85rem', outline: 'none', colorScheme: 'dark',
-            }}
+            style={{ background: 'var(--sm-bg)', border: '1px solid var(--sm-border)', borderRadius: 6, color: 'var(--sm-text)', padding: '6px 10px', fontSize: '0.85rem', outline: 'none', colorScheme: 'dark' }}
           />
         </div>
 
-        {/* Bouton sauvegarder */}
         <button
           onClick={handleSaveNote}
           style={{
-            background: saved ? 'var(--sm-success)' : 'var(--sm-red)',
+            background: saved ? '#2E7D32' : 'var(--sm-red)',
             color: '#fff', border: 'none', borderRadius: 8,
             padding: '10px', cursor: 'pointer', fontWeight: 700,
             fontSize: '0.9rem', transition: 'background 0.3s',
           }}
         >
           {saved ? '✅ Sauvegardé' : '💾 Sauvegarder les notes'}
-        </button>
-
-        {/* Bouton masquer */}
-        <button
-          onClick={() => {
-            masquerEntreprise(entreprise.id);
-            onMasquer(entreprise.id);
-            onClose();
-          }}
-          style={{
-            background: 'transparent', color: 'var(--sm-text-dim)',
-            border: '1px solid var(--sm-border)', borderRadius: 8,
-            padding: '8px', cursor: 'pointer', fontSize: '0.82rem',
-          }}
-        >
-          🚫 Pas intéressant — masquer ce point
         </button>
 
         {entreprise.manuelle && (
@@ -221,17 +204,7 @@ function InfoLine({ label, value }: { label: string; value: string }) {
 
 function LienExt({ href, label, color }: { href: string; label: string; color: string }) {
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      style={{
-        display: 'inline-block',
-        background: 'var(--sm-bg)', border: `1px solid ${color}`,
-        color: color, borderRadius: 6, padding: '5px 12px',
-        fontSize: '0.78rem', textDecoration: 'none',
-      }}
-    >
+    <a href={href} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', background: 'var(--sm-bg)', border: `1px solid ${color}`, color, borderRadius: 6, padding: '5px 12px', fontSize: '0.78rem', textDecoration: 'none' }}>
       {label} ↗
     </a>
   );
@@ -239,10 +212,10 @@ function LienExt({ href, label, color }: { href: string; label: string; color: s
 
 function trancheLabel(code: string): string {
   const map: Record<string, string> = {
-    '12': '20-49 salariés', '21': '50-99 salariés', '22': '100-199 salariés',
-    '31': '200-249 salariés', '32': '250-499 salariés', '41': '500-999 salariés',
-    '42': '1000-1999 salariés', '51': '2000-4999 salariés', '52': '5000-9999 salariés',
-    '53': '10000+ salariés',
+    '11': '10-19 salariés', '12': '20-49 salariés', '21': '50-99 salariés',
+    '22': '100-199 salariés', '31': '200-249 salariés', '32': '250-499 salariés',
+    '41': '500-999 salariés', '42': '1000-1999 salariés', '51': '2000-4999 salariés',
+    '52': '5000-9999 salariés', '53': '10000+ salariés',
   };
   return map[code] || code;
 }

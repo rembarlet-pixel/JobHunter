@@ -21,8 +21,8 @@ interface Props {
 }
 
 function getCouleur(statut: StatutCandidature | undefined): string {
-  if (!statut) return STATUTS.prospect.couleur;
-  return STATUTS[statut]?.couleur || STATUTS.prospect.couleur;
+  if (!statut) return STATUTS.regarder.couleur;
+  return STATUTS[statut]?.couleur || STATUTS.regarder.couleur;
 }
 
 export default function CarteEntreprises({ entreprises, filtreStatut, filtreTexte, onSelect, selected }: Props) {
