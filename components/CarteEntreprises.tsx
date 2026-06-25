@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import 'leaflet/dist/leaflet.css';
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { Entreprise, StatutCandidature } from '@/lib/types';
 import { STATUTS } from '@/lib/types';
