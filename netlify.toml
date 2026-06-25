@@ -1,0 +1,9 @@
+[build]
+  command = "node scripts/prefetch-companies.mjs && next build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
