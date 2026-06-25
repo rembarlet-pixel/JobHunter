@@ -25,7 +25,8 @@ export default function OffresEmploi() {
     setError(null);
     try {
       const res = await fetch('/api/offres');
-      const data = await res.json();
+      let data: { resultats?: Offre[]; error?: string } = {};
+      try { data = await res.json(); } catch { /* réponse vide */ }
       if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
       setOffres(data.resultats || []);
     } catch (err) {

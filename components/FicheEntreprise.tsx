@@ -41,17 +41,9 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
 
   const couleurStatut = STATUTS[statut].couleur;
 
-  const searchLinkedIn = () => {
-    window.open(`https://www.google.com/search?q=site:linkedin.com/company+${encodeURIComponent(entreprise.nom)}`, '_blank');
-  };
-
-  const searchSocieteCom = () => {
-    window.open(`https://annuaire-entreprises.data.gouv.fr/entreprise/${entreprise.siren}`, '_blank');
-  };
-
-  const searchGoogle = () => {
-    window.open(`https://www.google.com/search?q=${encodeURIComponent(entreprise.nom + ' ' + entreprise.ville + ' recrutement')}`, '_blank');
-  };
+  const urlLinkedIn = `https://www.google.com/search?q=site:linkedin.com/company+${encodeURIComponent(entreprise.nom)}`;
+  const urlAnnuaire = `https://annuaire-entreprises.data.gouv.fr/entreprise/${entreprise.siren}`;
+  const urlGoogle = `https://www.google.com/search?q=${encodeURIComponent(entreprise.nom + ' ' + entreprise.ville + ' recrutement')}`;
 
   return (
     <div style={{
@@ -137,9 +129,9 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
             Recherche externe
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <BtnExt onClick={searchLinkedIn} label="LinkedIn" color="var(--sm-blue-light)" />
-            <BtnExt onClick={searchSocieteCom} label="Societe.com" color="var(--sm-text-dim)" />
-            <BtnExt onClick={searchGoogle} label="Google" color="var(--sm-gold)" />
+            <LienExt href={urlLinkedIn} label="LinkedIn" color="var(--sm-blue-light)" />
+            <LienExt href={urlAnnuaire} label="Annuaire" color="var(--sm-text-dim)" />
+            <LienExt href={urlGoogle} label="Google" color="var(--sm-gold)" />
           </div>
         </div>
 
@@ -227,18 +219,21 @@ function InfoLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-function BtnExt({ onClick, label, color }: { onClick: () => void; label: string; color: string }) {
+function LienExt({ href, label, color }: { href: string; label: string; color: string }) {
   return (
-    <button
-      onClick={onClick}
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
       style={{
+        display: 'inline-block',
         background: 'var(--sm-bg)', border: `1px solid ${color}`,
         color: color, borderRadius: 6, padding: '5px 12px',
-        fontSize: '0.78rem', cursor: 'pointer',
+        fontSize: '0.78rem', textDecoration: 'none',
       }}
     >
       {label} ↗
-    </button>
+    </a>
   );
 }
 

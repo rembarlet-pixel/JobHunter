@@ -40,8 +40,15 @@ async function fetchPage(codeApe, region, page) {
   return res.json();
 }
 
+const TRANCHES_EXCLUES = new Set([null, undefined, '', 'NN', '00', '01', '02', '03']);
+
 function parseEntreprise(r) {
   const siege = r.siege || {};
+  const tranche = r.tranche_effectif_salarie ?? null;
+
+  // Exclure les entreprises sans effectifs déclarés ou moins de 10 salariés
+  if (TRANCHES_EXCLUES.has(tranche)) return null;
+
   const nom = r.nom_complet || r.nom_raison_sociale || 'Entreprise inconnue';
   const codePostal = siege.code_postal || '';
   const departement = siege.departement || codePostal.slice(0, 2);
@@ -83,7 +90,7 @@ async function main() {
           for (const r of data.results || []) {
             if (r.etat_administratif !== 'A') continue;
             const e = parseEntreprise(r);
-            if (e.id && !entreprises.has(e.id)) {
+            if (e && e.id && !entreprises.has(e.id)) {
               entreprises.set(e.id, e);
             }
           }
