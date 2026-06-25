@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import type { Entreprise, StatutCandidature } from '@/lib/types';
+import type { EntrepriseLBB } from '@/components/CarteEntreprises';
 import companiesData from '@/data/companies-cache.json';
 import { getEntreprisesManuelles, getMasquees } from '@/lib/storage';
 
@@ -13,15 +14,15 @@ const OffresEmploi = dynamic(() => import('@/components/OffresEmploi'), { ssr: f
 
 type Vue = 'carte' | 'offres';
 
-// Départements Est : AURA (sans Auvergne Ouest) + Grand Est
 const DEPTS_EST = new Set([
-  '01','07','26','38','42','69','73','74', // AURA Est
-  '08','10','51','52','54','55','57','67','68','88', // Grand Est
+  '01','07','26','38','42','69','73','74',
+  '08','10','51','52','54','55','57','67','68','88',
 ]);
 
 export default function Home() {
   const [entreprises, setEntreprises] = useState<Entreprise[]>([]);
   const [masquees, setMasquees] = useState<Set<string>>(new Set());
+  const [entreprisesLBB, setEntreprisesLBB] = useState<EntrepriseLBB[]>([]);
   const [selected, setSelected] = useState<Entreprise | null>(null);
   const [filtreStatut, setFiltreStatut] = useState<StatutCandidature | 'tous'>('tous');
   const [filtreTexte, setFiltreTexte] = useState('');
@@ -37,6 +38,12 @@ export default function Home() {
     ];
     setEntreprises(all);
     setMasquees(getMasquees());
+
+    // Charger La Bonne Boite en arrière-plan
+    fetch('/api/lbb')
+      .then(r => r.ok ? r.json() : { companies: [] })
+      .then(d => setEntreprisesLBB(d.companies || []))
+      .catch(() => {});
   }, []);
 
   const entreprisesVisibles = entreprises.filter(e => !masquees.has(e.id));
@@ -75,18 +82,23 @@ export default function Home() {
           JOB HUNTER
         </div>
 
+        {entreprisesLBB.length > 0 && (
+          <div style={{ marginLeft: 8, fontSize: '0.65rem', color: '#CC0000', fontWeight: 600 }}>
+            🔴 {entreprisesLBB.length} recruteurs
+          </div>
+        )}
+
         <div style={{ flex: 1 }} />
 
         <OngletBtn actif={vue === 'carte'} onClick={() => setVue('carte')} label="🗺 Carte" />
         <OngletBtn actif={vue === 'offres'} onClick={() => setVue('offres')} label="📋 Offres" />
       </div>
 
-      {/* Contenu — position relative pour que OffresEmploi soit contenu dedans */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        {/* Carte toujours montée, cachée quand onglet Offres */}
         <div style={{ height: '100%', display: vue === 'carte' ? 'flex' : 'none' }}>
           <CarteEntreprises
             entreprises={entreprisesVisibles}
+            entreprisesLBB={entreprisesLBB}
             filtreStatut={filtreStatut}
             filtreTexte={filtreTexte}
             onSelect={handleSelect}
@@ -97,7 +109,6 @@ export default function Home() {
         {vue === 'offres' && <OffresEmploi />}
       </div>
 
-      {/* Panel liste */}
       {panelOuvert && (
         <>
           <div onClick={() => setPanelOuvert(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1400 }} />
@@ -115,7 +126,6 @@ export default function Home() {
         </>
       )}
 
-      {/* Fiche entreprise */}
       {selected && (
         <>
           <div onClick={() => setSelected(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1900 }} />
@@ -128,7 +138,6 @@ export default function Home() {
         </>
       )}
 
-      {/* FAB */}
       {vue === 'carte' && !selected && !panelOuvert && (
         <button
           onClick={() => alert('Ajout manuel — bientôt disponible')}
