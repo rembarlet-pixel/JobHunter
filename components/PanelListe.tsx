@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import type { Entreprise, StatutCandidature } from '@/lib/types';
 import { STATUTS } from '@/lib/types';
 import { getStatuts, getNotes } from '@/lib/storage';
+import { getActivite } from '@/lib/ape';
 
 interface Props {
   entreprises: Entreprise[];
@@ -161,7 +162,10 @@ export default function PanelListe({
                 </div>
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--sm-text-dim)', marginTop: 2 }}>
-                {e.ville} ({e.departement}) · {e.libelleApe}
+                {getActivite(e.libelleApe, e.codeApe)}
+              </div>
+              <div style={{ fontSize: '0.68rem', color: '#4a6a8a', marginTop: 1 }}>
+                {e.ville} ({e.departement})
               </div>
             </div>
           );

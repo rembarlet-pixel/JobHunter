@@ -1,133 +1,110 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-
-interface Offre {
-  id: string;
-  intitule: string;
-  entreprise?: { nom?: string };
-  lieuTravail?: { libelle?: string };
-  typeContrat?: string;
-  dateCreation?: string;
-  origineOffre?: { urlOrigine?: string };
-  description?: string;
-  salaire?: { libelle?: string };
-}
+const SITES = [
+  {
+    nom: 'Indeed',
+    emoji: '🔍',
+    desc: 'Le plus grand moteur d\'offres d\'emploi',
+    couleur: '#2164F3',
+    url: 'https://fr.indeed.com/emplois?q=responsable+commercial+BTP+materiaux&l=Auvergne-Rh%C3%B4ne-Alpes',
+  },
+  {
+    nom: 'LinkedIn',
+    emoji: '💼',
+    desc: 'Réseau pro + offres de cadres',
+    couleur: '#0A66C2',
+    url: 'https://www.linkedin.com/jobs/search/?keywords=responsable%20commercial%20BTP&location=Auvergne-Rh%C3%B4ne-Alpes',
+  },
+  {
+    nom: 'APEC',
+    emoji: '🎯',
+    desc: 'Offres cadres uniquement',
+    couleur: '#00A550',
+    url: 'https://www.apec.fr/candidat/recherche-emploi.html/emploi?keywords=responsable+commercial+BTP+materiaux&location=Auvergne-Rh%C3%B4ne-Alpes',
+  },
+  {
+    nom: 'France Travail',
+    emoji: '🏢',
+    desc: 'Toutes les offres publiées',
+    couleur: '#E2001A',
+    url: 'https://candidat.francetravail.fr/offres/recherche?motsCles=responsable+commercial+BTP&lieuTravail=Auvergne-Rh%C3%B4ne-Alpes',
+  },
+  {
+    nom: 'Cadremploi',
+    emoji: '📊',
+    desc: 'Spécialisé profils cadres',
+    couleur: '#FF6600',
+    url: 'https://www.cadremploi.fr/emploi/liste_offres.html?kw=responsable+commercial+BTP&lieuTravail=Auvergne-Rh%C3%B4ne-Alpes',
+  },
+  {
+    nom: 'Monster',
+    emoji: '👾',
+    desc: 'Large spectre d\'offres',
+    couleur: '#6E00FF',
+    url: 'https://www.monster.fr/offres-emploi/recherche/?q=responsable-commercial-btp&where=Auvergne-Rh%C3%B4ne-Alpes',
+  },
+  {
+    nom: 'HelloWork',
+    emoji: '👋',
+    desc: 'Spécialisé régions françaises',
+    couleur: '#00B0A7',
+    url: 'https://www.hellowork.com/fr-fr/emploi/recherche.html?k=responsable+commercial+btp&l=Auvergne-Rh%C3%B4ne-Alpes',
+  },
+  {
+    nom: 'Indeed — Grand Est',
+    emoji: '🔍',
+    desc: 'Même recherche sur Grand Est',
+    couleur: '#2164F3',
+    url: 'https://fr.indeed.com/emplois?q=responsable+commercial+BTP+materiaux&l=Grand+Est',
+  },
+];
 
 export default function OffresEmploi() {
-  const [offres, setOffres] = useState<Offre[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
-
-  async function chargerOffres() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/offres');
-      let data: { resultats?: Offre[]; error?: string } = {};
-      try { data = await res.json(); } catch { /* réponse vide */ }
-      if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
-      setOffres(data.resultats || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    chargerOffres();
-  }, []);
-
   return (
-    <div style={{
-      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'var(--sm-bg)',
-      overflowY: 'auto',
-    }}>
-      {/* Header */}
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--sm-bg)', overflowY: 'auto' }}>
+
       <div style={{
-        background: 'var(--sm-panel)',
-        borderBottom: '2px solid var(--sm-red)',
-        padding: '14px 16px',
-        position: 'sticky', top: 0, zIndex: 10,
-        display: 'flex', alignItems: 'center', gap: 12,
+        background: 'var(--sm-panel)', borderBottom: '2px solid var(--sm-red)',
+        padding: '14px 16px', position: 'sticky', top: 0, zIndex: 10,
       }}>
-        <div>
-          <div style={{ fontWeight: 700, color: 'var(--sm-gold)', fontSize: '1rem' }}>📋 OFFRES D'EMPLOI</div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--sm-text-dim)' }}>
-            Via France Travail · Responsable commercial / BTP
-          </div>
+        <div style={{ fontWeight: 700, color: 'var(--sm-gold)', fontSize: '1rem' }}>📋 SITES D'EMPLOI</div>
+        <div style={{ fontSize: '0.7rem', color: 'var(--sm-text-dim)', marginTop: 2 }}>
+          Responsable commercial / BTP / Matériaux · AURA + Grand Est
         </div>
-        <button
-          onClick={chargerOffres}
-          disabled={loading}
-          style={{
-            marginLeft: 'auto', background: 'var(--sm-red)', color: '#fff',
-            border: 'none', borderRadius: 6, padding: '6px 14px',
-            cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700,
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          {loading ? '⏳' : '🔄 Actualiser'}
-        </button>
       </div>
 
-      <div style={{ padding: 16, flex: 1 }}>
-        {error && (
-          <div style={{
-            background: '#2a0a0a', border: '1px solid var(--sm-red)',
-            borderRadius: 8, padding: 16, marginBottom: 16, color: '#ff8080',
-          }}>
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>⚠️ Connexion impossible</div>
-            <div style={{ fontSize: '0.82rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>{error}</div>
-          </div>
-        )}
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ fontSize: '0.78rem', color: 'var(--sm-text-dim)', marginBottom: 4 }}>
+          Appuie sur un site pour lancer la recherche directement filtrée pour ton profil.
+        </div>
 
-        {!loading && !error && offres.length === 0 && (
-          <div style={{ textAlign: 'center', color: 'var(--sm-text-dim)', padding: 40 }}>
-            <div style={{ fontSize: '2rem', marginBottom: 8 }}>📭</div>
-            <div>Aucune offre trouvée</div>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {offres.map(offre => (
-            <div key={offre.id} style={{ background: 'var(--sm-panel)', border: '1px solid var(--sm-border)', borderRadius: 8, overflow: 'hidden' }}>
-              <div onClick={() => setExpanded(expanded === offre.id ? null : offre.id)} style={{ padding: '12px 16px', cursor: 'pointer' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--sm-text)', fontSize: '0.9rem', flex: 1 }}>{offre.intitule}</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--sm-blue-light)', flexShrink: 0 }}>{offre.typeContrat || 'CDI'}</div>
-                </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--sm-text-dim)', marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  <span>🏢 {offre.entreprise?.nom || 'Confidentiel'}</span>
-                  <span>📍 {offre.lieuTravail?.libelle || '—'}</span>
-                </div>
-                {offre.salaire?.libelle && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--sm-gold)', marginTop: 2 }}>💰 {offre.salaire.libelle}</div>
-                )}
-                <div style={{ fontSize: '0.68rem', color: 'var(--sm-text-dim)', marginTop: 4 }}>
-                  {offre.dateCreation ? new Date(offre.dateCreation).toLocaleDateString('fr-FR') : '—'} · {expanded === offre.id ? '▲ Réduire' : '▼ Voir plus'}
-                </div>
-              </div>
-
-              {expanded === offre.id && (
-                <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--sm-border)' }}>
-                  {offre.description && (
-                    <div style={{ fontSize: '0.8rem', color: 'var(--sm-text-dim)', marginTop: 12, whiteSpace: 'pre-wrap', maxHeight: 200, overflowY: 'auto', lineHeight: 1.5 }}>
-                      {offre.description.slice(0, 600)}{offre.description.length > 600 ? '…' : ''}
-                    </div>
-                  )}
-                  {offre.origineOffre?.urlOrigine && (
-                    <a href={offre.origineOffre.urlOrigine} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 12, background: 'var(--sm-red)', color: '#fff', padding: '6px 14px', borderRadius: 6, fontSize: '0.8rem', textDecoration: 'none', fontWeight: 700 }}>
-                      Voir l'offre ↗
-                    </a>
-                  )}
-                </div>
-              )}
+        {SITES.map(site => (
+          <a
+            key={site.nom}
+            href={site.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              background: 'var(--sm-panel)',
+              border: `1px solid ${site.couleur}33`,
+              borderLeft: `4px solid ${site.couleur}`,
+              borderRadius: 8, padding: '14px 16px',
+              textDecoration: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ fontSize: '1.6rem', flexShrink: 0 }}>{site.emoji}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, color: site.couleur, fontSize: '1rem' }}>{site.nom}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--sm-text-dim)', marginTop: 2 }}>{site.desc}</div>
             </div>
-          ))}
+            <div style={{ color: 'var(--sm-text-dim)', fontSize: '1.1rem', flexShrink: 0 }}>↗</div>
+          </a>
+        ))}
+
+        <div style={{ marginTop: 8, padding: 12, background: 'var(--sm-panel)', borderRadius: 8, border: '1px solid var(--sm-border)', fontSize: '0.75rem', color: 'var(--sm-text-dim)' }}>
+          💡 Astuce : après avoir trouvé une offre, reviens sur la carte pour retrouver l'entreprise et noter tes actions dessus.
         </div>
       </div>
     </div>

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import type { Entreprise, StatutCandidature } from '@/lib/types';
 import { STATUTS } from '@/lib/types';
-import { getStatuts, setStatut, getNotes, setNote, masquerEntreprise } from '@/lib/storage';
+import { getStatuts, setStatut, getNotes, setNote, masquerEntreprise, getEmails, setEmail } from '@/lib/storage';
+import { getActivite } from '@/lib/ape';
 
 interface Props {
   entreprise: Entreprise;
@@ -16,14 +17,17 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
   const [statut, setStatutLocal] = useState<StatutCandidature>('regarder');
   const [note, setNoteLocal] = useState('');
   const [rappel, setRappelLocal] = useState('');
+  const [email, setEmailLocal] = useState('');
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     const statuts = getStatuts();
     const notes = getNotes();
+    const emails = getEmails();
     setStatutLocal(statuts[entreprise.id]?.statut || 'regarder');
     setNoteLocal(notes[entreprise.id]?.texte || '');
     setRappelLocal(notes[entreprise.id]?.rappel || '');
+    setEmailLocal(emails[entreprise.id] || '');
     setSaved(false);
   }, [entreprise.id]);
 
@@ -33,8 +37,9 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
     onStatutChange();
   }
 
-  function handleSaveNote() {
+  function handleSave() {
     setNote(entreprise.id, note, rappel || undefined);
+    setEmail(entreprise.id, email);
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   }
@@ -46,10 +51,13 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
   }
 
   const couleurStatut = STATUTS[statut]?.couleur ?? '#1565C0';
+  const activite = getActivite(entreprise.libelleApe, entreprise.codeApe);
 
   const urlLinkedIn = `https://www.google.com/search?q=site:linkedin.com/company+${encodeURIComponent(entreprise.nom)}`;
   const urlAnnuaire = `https://annuaire-entreprises.data.gouv.fr/entreprise/${entreprise.siren}`;
   const urlGoogle = `https://www.google.com/search?q=${encodeURIComponent(entreprise.nom + ' ' + entreprise.ville + ' recrutement')}`;
+  const urlWaze = `https://waze.com/ul?q=${encodeURIComponent(entreprise.adresse + ', ' + entreprise.codePostal + ' ' + entreprise.ville)}&navigate=yes`;
+  const urlEmailSearch = `https://www.google.com/search?q=${encodeURIComponent('"' + entreprise.nom + '" email contact recrutement')}`;
 
   return (
     <div style={{
@@ -84,33 +92,23 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
 
         {/* Statuts + Supprimer */}
         <div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--sm-text-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
-            Statut
-          </div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--sm-text-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Statut</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {(Object.entries(STATUTS) as [StatutCandidature, typeof STATUTS[StatutCandidature]][]).map(([key, s]) => (
-              <button
-                key={key}
-                onClick={() => handleStatut(key)}
-                style={{
-                  padding: '6px 12px', borderRadius: 6, fontSize: '0.78rem', cursor: 'pointer',
-                  border: statut === key ? `2px solid ${s.couleur}` : '1px solid var(--sm-border)',
-                  background: statut === key ? s.couleur + '22' : 'transparent',
-                  color: statut === key ? s.couleur : 'var(--sm-text-dim)',
-                  fontWeight: statut === key ? 700 : 400,
-                }}
-              >
+              <button key={key} onClick={() => handleStatut(key)} style={{
+                padding: '6px 12px', borderRadius: 6, fontSize: '0.78rem', cursor: 'pointer',
+                border: statut === key ? `2px solid ${s.couleur}` : '1px solid var(--sm-border)',
+                background: statut === key ? s.couleur + '22' : 'transparent',
+                color: statut === key ? s.couleur : 'var(--sm-text-dim)',
+                fontWeight: statut === key ? 700 : 400,
+              }}>
                 {s.emoji} {s.label}
               </button>
             ))}
-            <button
-              onClick={handleSupprimer}
-              style={{
-                padding: '6px 12px', borderRadius: 6, fontSize: '0.78rem', cursor: 'pointer',
-                border: '1px solid #424242', background: 'transparent',
-                color: '#888',
-              }}
-            >
+            <button onClick={handleSupprimer} style={{
+              padding: '6px 12px', borderRadius: 6, fontSize: '0.78rem', cursor: 'pointer',
+              border: '1px solid #424242', background: 'transparent', color: '#888',
+            }}>
               🗑 Supprimer
             </button>
           </div>
@@ -119,9 +117,9 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
         {/* Infos entreprise */}
         <div style={{ background: 'var(--sm-bg)', borderRadius: 8, padding: 12, fontSize: '0.8rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
-            <InfoLine label="Activité" value={entreprise.libelleApe || APE_FALLBACK[entreprise.codeApe] || entreprise.codeApe} />
+            <InfoLine label="Activité" value={activite} />
             <InfoLine label="Code APE" value={entreprise.codeApe} />
-            <InfoLine label="Adresse" value={entreprise.adresse} />
+            <InfoLine label="Adresse" value={entreprise.adresse} waze={urlWaze} />
             <InfoLine label="Ville" value={`${entreprise.codePostal} ${entreprise.ville}`} />
             {entreprise.trancheEffectifs && (
               <InfoLine label="Effectifs" value={trancheLabel(entreprise.trancheEffectifs)} />
@@ -134,9 +132,7 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
 
         {/* Liens externes */}
         <div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--sm-text-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
-            Recherche externe
-          </div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--sm-text-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Recherche externe</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <LienExt href={urlLinkedIn} label="LinkedIn" color="var(--sm-blue-light)" />
             <LienExt href={urlAnnuaire} label="Annuaire" color="var(--sm-text-dim)" />
@@ -144,11 +140,36 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
           </div>
         </div>
 
+        {/* Email de contact */}
+        <div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--sm-text-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Email de contact</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmailLocal(e.target.value)}
+              placeholder="contact@entreprise.fr"
+              style={{
+                flex: 1, background: 'var(--sm-bg)', border: '1px solid var(--sm-border)',
+                borderRadius: 6, color: 'var(--sm-text)', padding: '6px 10px',
+                fontSize: '0.85rem', outline: 'none',
+              }}
+            />
+            {email ? (
+              <a href={`mailto:${email}`} style={{ background: 'var(--sm-blue)', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 10px', fontSize: '0.78rem', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                ✉ Écrire
+              </a>
+            ) : (
+              <a href={urlEmailSearch} target="_blank" rel="noopener noreferrer" style={{ background: 'var(--sm-bg)', color: 'var(--sm-text-dim)', border: '1px solid var(--sm-border)', borderRadius: 6, padding: '6px 10px', fontSize: '0.78rem', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                🔍 Chercher
+              </a>
+            )}
+          </div>
+        </div>
+
         {/* Notes */}
         <div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--sm-text-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
-            Notes
-          </div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--sm-text-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Notes</div>
           <textarea
             value={note}
             onChange={e => setNoteLocal(e.target.value)}
@@ -160,9 +181,7 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
 
         {/* Rappel */}
         <div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--sm-text-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>
-            🔔 Rappel
-          </div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--sm-text-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>🔔 Rappel</div>
           <input
             type="date"
             value={rappel}
@@ -172,7 +191,7 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
         </div>
 
         <button
-          onClick={handleSaveNote}
+          onClick={handleSave}
           style={{
             background: saved ? '#2E7D32' : 'var(--sm-red)',
             color: '#fff', border: 'none', borderRadius: 8,
@@ -180,7 +199,7 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
             fontSize: '0.9rem', transition: 'background 0.3s',
           }}
         >
-          {saved ? '✅ Sauvegardé' : '💾 Sauvegarder les notes'}
+          {saved ? '✅ Sauvegardé' : '💾 Sauvegarder'}
         </button>
 
         {entreprise.manuelle && (
@@ -193,11 +212,17 @@ export default function FicheEntreprise({ entreprise, onClose, onStatutChange, o
   );
 }
 
-function InfoLine({ label, value }: { label: string; value: string }) {
+function InfoLine({ label, value, waze }: { label: string; value: string; waze?: string }) {
   return (
     <div>
       <div style={{ color: 'var(--sm-text-dim)', fontSize: '0.7rem' }}>{label}</div>
-      <div style={{ color: 'var(--sm-text)', marginTop: 1 }}>{value || '—'}</div>
+      {waze ? (
+        <a href={waze} target="_blank" rel="noopener noreferrer" style={{ color: '#00BFFF', marginTop: 1, display: 'block', fontSize: '0.8rem', textDecoration: 'underline' }}>
+          {value || '—'} 🗺
+        </a>
+      ) : (
+        <div style={{ color: 'var(--sm-text)', marginTop: 1 }}>{value || '—'}</div>
+      )}
     </div>
   );
 }
@@ -209,29 +234,6 @@ function LienExt({ href, label, color }: { href: string; label: string; color: s
     </a>
   );
 }
-
-const APE_FALLBACK: Record<string, string> = {
-  '23.51Z': 'Fabrication de ciment',
-  '23.52Z': 'Fabrication de chaux et plâtre',
-  '23.61Z': 'Éléments en béton pour construction',
-  '23.63Z': 'Béton prêt à l\'emploi',
-  '23.64Z': 'Mortiers et bétons secs',
-  '23.69Z': 'Ouvrages en béton / ciment',
-  '24.10Z': 'Sidérurgie / métallurgie',
-  '24.20Z': 'Tubes et tuyaux en acier',
-  '25.11Z': 'Structures métalliques',
-  '25.21Z': 'Radiateurs et chaudières',
-  '25.29Z': 'Réservoirs et citernes métal',
-  '25.61Z': 'Traitement des métaux',
-  '25.93Z': 'Articles en fils métalliques',
-  '28.14Z': 'Robinets et vannes industriels',
-  '46.72Z': 'Commerce gros minerais / métaux',
-  '46.73Z': 'Négoce de matériaux de construction',
-  '46.74Z': 'Négoce quincaillerie / plomberie',
-  '42.11Z': 'Construction routes et autoroutes',
-  '42.21Z': 'Construction réseaux fluides',
-  '42.99Z': 'Génie civil / travaux publics',
-};
 
 function trancheLabel(code: string): string {
   const map: Record<string, string> = {

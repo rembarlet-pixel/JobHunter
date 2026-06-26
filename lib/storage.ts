@@ -5,6 +5,7 @@ const KEYS = {
   notes: 'jh-notes',
   manuelles: 'jh-manuelles',
   masquees: 'jh-masquees',
+  emails: 'jh-emails',
 } as const;
 
 function load<T>(key: string, fallback: T): T {
@@ -75,4 +76,16 @@ export function demasquerEntreprise(id: string) {
   const set = getMasquees();
   set.delete(id);
   save(KEYS.masquees, [...set]);
+}
+
+// Emails de contact
+export function getEmails(): Record<string, string> {
+  return load<Record<string, string>>(KEYS.emails, {});
+}
+
+export function setEmail(id: string, email: string) {
+  const emails = getEmails();
+  if (email) emails[id] = email;
+  else delete emails[id];
+  save(KEYS.emails, emails);
 }

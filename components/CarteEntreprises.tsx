@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import type { Entreprise, StatutCandidature } from '@/lib/types';
 import { STATUTS } from '@/lib/types';
 import { getStatuts } from '@/lib/storage';
+import { getActivite } from '@/lib/ape';
 
 const MapContainer = dynamic(() => import('react-leaflet').then(m => m.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import('react-leaflet').then(m => m.TileLayer), { ssr: false });
@@ -31,9 +32,18 @@ interface Props {
   selected: Entreprise | null;
 }
 
-function getCouleur(statut: StatutCandidature | undefined): string {
-  if (!statut) return STATUTS.regarder.couleur;
-  return STATUTS[statut]?.couleur || STATUTS.regarder.couleur;
+// Tranches effectifs = 50+ employés (inclut 60+)
+const LARGE_TRANCHES = new Set(['21','22','31','32','41','42','51','52','53']);
+const COULEUR_VIOLET = '#9C27B0';
+const COULEUR_LBB = '#CC0000';
+
+function getCouleur(statut: StatutCandidature | undefined, tranche: string | undefined): string {
+  // CRM qualifié → couleur CRM
+  if (statut && statut !== 'regarder') return STATUTS[statut].couleur;
+  // Grande entreprise (>50 emp) → violet
+  if (LARGE_TRANCHES.has(tranche || '')) return COULEUR_VIOLET;
+  // Default → bleu
+  return STATUTS.regarder.couleur;
 }
 
 export default function CarteEntreprises({ entreprises, entreprisesLBB, filtreStatut, filtreTexte, onSelect, selected }: Props) {
@@ -57,7 +67,8 @@ export default function CarteEntreprises({ entreprises, entreprisesLBB, filtreSt
     }
     if (filtreTexte) {
       const t = filtreTexte.toLowerCase();
-      if (!e.nom.toLowerCase().includes(t) && !e.ville.toLowerCase().includes(t) && !e.libelleApe.toLowerCase().includes(t)) return false;
+      const act = getActivite(e.libelleApe, e.codeApe).toLowerCase();
+      if (!e.nom.toLowerCase().includes(t) && !e.ville.toLowerCase().includes(t) && !act.includes(t)) return false;
     }
     return true;
   });
@@ -78,21 +89,29 @@ export default function CarteEntreprises({ entreprises, entreprisesLBB, filtreSt
         {/* Points entreprises Sirène */}
         {visibles.map(e => {
           const statut = statuts[e.id]?.statut;
-          const couleur = getCouleur(statut);
+          const couleur = getCouleur(statut, e.trancheEffectifs);
           const isSelected = selected?.id === e.id;
           return (
             <CircleMarker
               key={e.id}
               center={[e.lat!, e.lng!]}
-              radius={isSelected ? 10 : 6}
-              pathOptions={{ color: isSelected ? '#FFD700' : couleur, fillColor: couleur, fillOpacity: isSelected ? 1 : 0.85, weight: isSelected ? 3 : 1 }}
+              radius={isSelected ? 18 : 14}
+              pathOptions={{
+                color: isSelected ? '#FFD700' : couleur,
+                fillColor: couleur,
+                fillOpacity: isSelected ? 1 : 0.82,
+                weight: isSelected ? 3 : 1,
+              }}
               eventHandlers={{ click: () => onSelect(e) }}
             >
-              <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
-                <div style={{ background: '#0d1a30', color: '#e8f0fe', padding: '4px 8px', borderRadius: 4, fontSize: '0.8rem', minWidth: 120 }}>
+              <Tooltip direction="top" offset={[0, -12]} opacity={0.97}>
+                <div style={{ background: '#0d1a30', color: '#e8f0fe', padding: '4px 8px', borderRadius: 4, fontSize: '0.8rem', minWidth: 130 }}>
                   <div style={{ fontWeight: 700 }}>{e.nom}</div>
                   <div style={{ color: '#8ab0d0' }}>{e.ville} ({e.departement})</div>
-                  {statut && <div style={{ color: couleur }}>{STATUTS[statut].emoji} {STATUTS[statut].label}</div>}
+                  <div style={{ color: '#8ab0d0', fontSize: '0.7rem' }}>{getActivite(e.libelleApe, e.codeApe)}</div>
+                  {statut && statut !== 'regarder' && (
+                    <div style={{ color: couleur, marginTop: 2 }}>{STATUTS[statut].emoji} {STATUTS[statut].label}</div>
+                  )}
                 </div>
               </Tooltip>
             </CircleMarker>
@@ -104,16 +123,20 @@ export default function CarteEntreprises({ entreprises, entreprisesLBB, filtreSt
           <CircleMarker
             key={`lbb-${c.siret}`}
             center={[c.lat, c.lon]}
-            radius={7}
-            pathOptions={{ color: '#CC0000', fillColor: '#CC0000', fillOpacity: 0.75, weight: 1 }}
+            radius={12}
+            pathOptions={{ color: COULEUR_LBB, fillColor: COULEUR_LBB, fillOpacity: 0.75, weight: 1.5 }}
           >
-            <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
-              <div style={{ background: '#0d1a30', color: '#e8f0fe', padding: '4px 8px', borderRadius: 4, fontSize: '0.8rem', minWidth: 140 }}>
-                <div style={{ fontWeight: 700, color: '#CC0000' }}>🔴 Recrute probablement</div>
+            <Tooltip direction="top" offset={[0, -10]} opacity={0.97}>
+              <div style={{ background: '#0d1a30', color: '#e8f0fe', padding: '4px 8px', borderRadius: 4, fontSize: '0.8rem', minWidth: 150 }}>
+                <div style={{ fontWeight: 700, color: COULEUR_LBB }}>🔴 Recrute probablement</div>
                 <div style={{ fontWeight: 600, marginTop: 2 }}>{c.name}</div>
                 <div style={{ color: '#8ab0d0' }}>{c.city}</div>
-                <div style={{ color: '#8ab0d0', fontSize: '0.72rem' }}>{c.naf_text}</div>
-                <div style={{ color: '#FFD700', fontSize: '0.7rem', marginTop: 2 }}>{'★'.repeat(Math.round(c.stars || 0))} score recrutement</div>
+                <div style={{ color: '#8ab0d0', fontSize: '0.7rem' }}>{c.naf_text}</div>
+                {c.stars > 0 && (
+                  <div style={{ color: '#FFD700', fontSize: '0.7rem', marginTop: 2 }}>
+                    {'★'.repeat(Math.min(Math.round(c.stars), 5))} score recrutement
+                  </div>
+                )}
               </div>
             </Tooltip>
           </CircleMarker>
@@ -121,19 +144,23 @@ export default function CarteEntreprises({ entreprises, entreprisesLBB, filtreSt
       </MapContainer>
 
       {/* Légende */}
-      <div style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 1000, background: 'var(--sm-panel)', border: '1px solid var(--sm-border)', borderRadius: 8, padding: '8px 12px', fontSize: '0.7rem' }}>
+      <div style={{ position: 'absolute', bottom: 16, left: 16, zIndex: 1000, background: 'rgba(13,26,48,0.95)', border: '1px solid #1a3a6e', borderRadius: 8, padding: '8px 12px', fontSize: '0.7rem' }}>
         {Object.entries(STATUTS).map(([key, s]) => (
-          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', background: s.couleur, flexShrink: 0 }} />
+          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: s.couleur, flexShrink: 0 }} />
             <span style={{ color: '#8ab0d0' }}>{s.label}</span>
           </div>
         ))}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-          <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#CC0000', flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+          <div style={{ width: 12, height: 12, borderRadius: '50%', background: COULEUR_VIOLET, flexShrink: 0 }} />
+          <span style={{ color: '#8ab0d0' }}>Grande entreprise (50+ salariés)</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+          <div style={{ width: 12, height: 12, borderRadius: '50%', background: COULEUR_LBB, flexShrink: 0 }} />
           <span style={{ color: '#8ab0d0' }}>Recrute probablement (LBB)</span>
         </div>
         <div style={{ marginTop: 6, color: '#8ab0d0', borderTop: '1px solid #1a3a6e', paddingTop: 4 }}>
-          {visibles.length} entreprises · {entreprisesLBB.length} recruteurs
+          {visibles.length} entreprises · {entreprisesLBB.length} recruteurs LBB
         </div>
       </div>
     </div>
